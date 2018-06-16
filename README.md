@@ -5,7 +5,7 @@ Telegram бот для чата [ExtremeCode Rest](https://t.me/extremecode_rest
 
 ## Че как
 
-### Установить зависимости
+### Зависимости
 
 ```bash
 npm install
