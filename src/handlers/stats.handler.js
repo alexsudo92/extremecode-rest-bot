@@ -12,6 +12,7 @@ const createUser = async (from) => {
     const stat = await Stat.create({ });
 
     await user.setStat(stat);
+    return user;
 };
 
 module.exports = async (from) => {
@@ -23,7 +24,8 @@ module.exports = async (from) => {
     });
 
     if (!user) {
-        user = createUser(from);
+        user = await createUser(from);
+        user.Stat = await user.getStat();
     }
 
     user.Stat.messages_count += 1;

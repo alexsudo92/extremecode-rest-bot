@@ -10,7 +10,9 @@ module.exports = (async () => {
     require('./commands').init();
 
     bot.on('message', async (msg) => {
-        await Stats(msg.from);
+        if (msg.text) {
+            await Stats(msg.from);
+        }
     });
 
     log.debug('Application started');
