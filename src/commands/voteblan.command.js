@@ -133,7 +133,8 @@ module.exports = (() => {
             }
         );
 
-        return VoteBan.update({ post_id: message.message_id }, { where: { user_id: user.id } });
+        voteBan.post_id = message.message_id;
+        return voteBan.save();
     };
 
     bot.on('callback_query', async (callback) => {
@@ -199,7 +200,7 @@ module.exports = (() => {
             return;
         }
 
-        if (user.is_admin === true) {
+        if (user.is_admin) {
             await replyTo(
                 chatId,
                 messageId,
