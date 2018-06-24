@@ -6,6 +6,24 @@ const moment = require('moment');
 const log = Logger(module);
 
 module.exports = (() => {
+    const voteEnum = Object.freeze({
+        yes: 1,
+        no: 0
+    });
+
+    const getTimeDuration = (createdAt) => {
+        const created = moment(createdAt);
+        const delta = moment(moment()).diff(moment(created));
+        return moment.duration(delta);
+    };
+
+    const replyTo = async (chatId, postId, message) => bot.sendMessage(
+        chatId,
+        message, {
+            reply_to_message_id: postId
+        }
+    );
+
     const findUser = async (username) => {
         const user = await User.findOne({
             where: {
@@ -16,7 +34,17 @@ module.exports = (() => {
         return user;
     };
 
-    const deleteVote = async (votebanId) => {
+    const findUserById = async (userId) => {
+        const user = await User.findOne({
+            where: {
+                telegram_id: userId
+            },
+            include: [VoteBan]
+        });
+        return user;
+    };
+
+    const deleteVoteBan = async (votebanId) => {
         await Vote.destroy({
             where: {
                 voteban_id: votebanId
@@ -32,46 +60,110 @@ module.exports = (() => {
         log.debug('Votes and Voteban destroyed');
     };
 
+    const addVote = async (chatId, fromId, banUser, voteValue) => {
+        const votingUser = await findUserById(fromId);
+
+        let vote = await Vote.findOne({
+            where: {
+                user_id: votingUser.id
+            }
+        });
+
+        if (vote) {
+            await replyTo(
+                chatId,
+                banUser.Voteban.post_id,
+                `[Утверждение]\r\n@${votingUser.username} глупый мешок с мясом ты уже голосовал!`
+            );
+            return false;
+        }
+
+        vote = await Vote.create({
+            vote: voteValue,
+            user_id: votingUser.id,
+            voteban_id: banUser.Voteban.id
+        });
+
+        if (voteValue === voteEnum.yes) {
+            await replyTo(
+                chatId,
+                banUser.Voteban.post_id,
+                `@${votingUser.username} решил уничтожить мешок с мясом`
+            );
+        } else {
+            await replyTo(
+                chatId,
+                banUser.Voteban.post_id,
+                `@${votingUser.username} решил пощадить мешок с мясом`
+            );
+        }
+
+        return true;
+    };
+
+    const createVoteBan = async (chatId, messageId, user) => {
+        const voteBan = await VoteBan.create({});
+        await user.setVoteban(voteBan);
+
+        const message = await bot.sendMessage(
+            chatId,
+            `[Утверждение]\r\nГолосование за аннигиляцию мешка с мясом @${user.username}`
+            , {
+                reply_to_message_id: messageId,
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Уничтожить',
+                                callback_data: JSON.stringify({
+                                    vote: voteEnum.yes,
+                                    id: user.telegram_id
+                                })
+                            },
+                            {
+                                text: 'Пощадить',
+                                callback_data: JSON.stringify({
+                                    vote: voteEnum.no,
+                                    id: user.telegram_id
+                                })
+                            } // ебаный пиздец
+                        ]
+                    ]
+                }
+            }
+        );
+
+        return VoteBan.update({ post_id: message.message_id }, { where: { user_id: user.id } });
+    };
+
     bot.on('callback_query', async (callback) => {
         const data = Transform.transfromCallback(callback);
+        const inline = data.inline_data;
         const chatId = data.message.chat.id;
 
-        const dataName = data.data.split(',');
-        const banUser = await findUser(dataName[1]);
+        const userId = inline.id;
+        const banUser = await findUserById(userId);
 
-        if (dataName[0] === 'unban') {
-            await bot.sendMessage(chatId, `@${callback.from.username} решил пощадить мешок с мясом`, {
-                reply_to_message_id: banUser.Voteban.post_id
-            });
-        } else {
-            const voteUser = await findUser(data.from.username);
+        const voteResult = await addVote(
+            chatId,
+            callback.from.id,
+            banUser,
+            inline.vote
+        );
 
-            const vote = await Vote.findOne({
-                where: {
-                    user_id: voteUser.id
-                }
-            });
+        const votes = await banUser.Voteban.getVotes();
+        let ban = 0, unban = 0; //eslint-disable-line
+        votes.forEach(v => v.vote === voteEnum.yes ? ban += 1 : unban += 1); //eslint-disable-line
 
-            if (vote) {
-                await bot.sendMessage(chatId, 'Глупый мешок с мясом ты уже голосовал!');
-                return;
-            }
-            const userVote = await Vote.create({ vote: 'yes', user_id: voteUser.id, voteban_id: banUser.Voteban.id });
-            voteUser.setVote(userVote);
+        if (ban > 5) {
+            await bot.kickChatMember(chatId, banUser.telegram_id);
+            await bot.sendMessage(chatId, `Мешок с мясом ${banUser.username} успешно аннигилирован!`);
+            await bot.unbanChatMember(chatId, banUser.telegram_id);
 
-            await bot.sendMessage(chatId, `@${callback.from.username} решил уничтожить мешок с мясом`, {
-                reply_to_message_id: banUser.Voteban.post_id
-            });
-
-            const votes = await banUser.Voteban.getVotes();
-
-            if (votes.length > 5) {
-                await bot.kickChatMember(chatId, banUser.telegram_id);
-                await bot.sendMessage(chatId, 'Мешок с мясом успешно аннигилирован!');
-                await bot.unbanChatMember(chatId, banUser.telegram_id);
-
-                await deleteVote(banUser.Voteban.id);
-            }
+            await deleteVoteBan(banUser.Voteban.id);
+        } else if (unban > 5) {
+            await bot.sendMessage(chatId, `Мешок с мясом ${banUser.username} будет жить!`);
+            await deleteVoteBan(banUser.Voteban.id);
         }
     });
 
@@ -80,52 +172,53 @@ module.exports = (() => {
         const messageId = msg.message_id;
         const username = match[1].replace('@', '');
         const user = await findUser(username);
-        
-        //TODO: Сделать проверку на время
-        if (user.Voteban) {
-            await bot.sendMessage(chatId, 'Дело этого мешка с мясом уже рассматривается!', {
-                reply_to_message_id: messageId
-            });
+
+        if (!user) {
+            await replyTo(
+                chatId,
+                messageId,
+                `Мешок с мясом по имени @${username} не найден`
+            );
             return;
         }
-        
-        if (!user) {
-            await bot.sendMessage(chatId, `Мешок с мясом по имени ${match[1]} не найден`, {
-                reply_to_message_id: messageId
-            });
+
+        if (user.Voteban) {
+            const duration = getTimeDuration(user.Voteban.created_at);
+            if (duration.days() >= 1) {
+                await deleteVoteBan(user.Voteban.id);
+                await createVoteBan(chatId, messageId, user);
+                return;
+            }
+
+            await replyTo(
+                chatId,
+                messageId,
+                'Дело этого мешка с мясом уже рассматривается!'
+            );
+
             return;
         }
 
         if (user.is_admin === true) {
-            await bot.sendMessage(chatId, 'Я сделаю вид, что не видел этого', {
-                reply_to_message_id: messageId
-            });
+            await replyTo(
+                chatId,
+                messageId,
+                'Я сделаю вид, что не видел этого'
+            );
+
             return;
         }
 
-        if (!user.VoteBan) {
-            const voteBan = await VoteBan.create({});
-            user.setVoteban(voteBan);
+        if (user.username === msg.from.username) {
+            await replyTo(
+                chatId,
+                messageId,
+                'Тупой мешок мяса не может просить о аннигиляции самого себя'
+            );
+
+            return;
         }
 
-        const message = await bot.sendMessage(chatId, `[Утверждение]\r\nМешок с мясом хочет уничтожить ${match[1]}`, {
-            reply_to_message_id: messageId,
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        {
-                            text: 'Уничтожить',
-                            callback_data: `ban,${username}`
-                        },
-                        {
-                            text: 'Пощадить',
-                            callback_data: `unban,${username}`
-                        }
-                    ]
-                ]
-            }
-        });
-
-        await VoteBan.update({ post_id: message.message_id }, { where: { user_id: user.id } });
+        await createVoteBan(chatId, messageId, user);
     });
 })();

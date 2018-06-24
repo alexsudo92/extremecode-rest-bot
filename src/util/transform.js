@@ -19,7 +19,7 @@ exports.transformArray = (arr) => {
 exports.transfromCallback = (callback) => {
     const transformed = {
         chat_instance: callback.chat_instance,
-        data: callback.data,
+        inline_data: JSON.parse(callback.data),
         from: {
             first_name: callback.from.first_name,
             id: callback.from.id,
