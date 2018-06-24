@@ -16,6 +16,29 @@ exports.transformArray = (arr) => {
     return result;
 };
 
+exports.transfromCallback = (callback) => {
+    const transformed = {
+        chat_instance: callback.chat_instance,
+        data: callback.data,
+        from: {
+            first_name: callback.from.first_name,
+            id: callback.from.id,
+            is_bot: callback.from.is_bot,
+            language_code: callback.from.language_code,
+            last_name: callback.from.last_name,
+            username: callback.from.username
+        },
+        id: callback.id,
+        message: {
+            chat: callback.message.chat,
+            date: callback.message.date,
+            text: callback.message.text
+        }
+    };
+
+    return transformed;
+};
+
 /**
  * Вспомогательная функция которая преобразует имена объектов
  * для экспорта, путем отбрасывания всего что находится после точки

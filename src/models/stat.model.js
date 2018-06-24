@@ -1,5 +1,3 @@
-const { Models } = require('./');
-
 module.exports = (sequelize, DataTypes) => {
     const Stat = sequelize.define('Stat', {
         messages_count: {

@@ -1,5 +1,3 @@
-const { Models } = require('./');
-
 module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define('User', {
         telegram_id: {
@@ -17,15 +15,16 @@ module.exports = (sequelize, DataTypes) => {
         },
         last_name: {
             type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                notEmpty: true,
-                len: [1, 150]
-            }
+            allowNull: true, // Last Name ставить не обязательно
+            defaultValue: ''
         },
         username: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        is_admin: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
         },
         is_bot: {
             type: DataTypes.BOOLEAN,
@@ -38,7 +37,9 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     User.associate = (models) => {
-        User.hasOne(models.Stat, { foreignKey: 'user_id' });
+        User.hasOne(models.Stat);
+        User.hasOne(models.Vote);
+        User.hasOne(models.VoteBan);
     };
 
     return User;
