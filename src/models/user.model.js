@@ -1,5 +1,9 @@
 module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define('User', {
+        chat_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
         telegram_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
