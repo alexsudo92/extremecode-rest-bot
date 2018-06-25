@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define('User', {
         chat_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING, // not int, cuz out of range
             allowNull: false
         },
         telegram_id: {
@@ -29,10 +29,6 @@ module.exports = (sequelize, DataTypes) => {
         is_admin: {
             type: DataTypes.BOOLEAN,
             defaultValue: false
-        },
-        is_bot: {
-            type: DataTypes.BOOLEAN,
-            allowNull: false
         }
     }, {
         underscored: true,
