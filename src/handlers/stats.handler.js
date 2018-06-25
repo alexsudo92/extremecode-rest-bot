@@ -92,6 +92,7 @@ module.exports = async (msg) => {
     });
 
     if (!user) {
+        from.chat_id = msg.chat.id;
         user = await createUser(from);
         user.Counter = await user.getCounter();
     } else {
