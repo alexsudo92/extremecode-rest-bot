@@ -15,7 +15,7 @@ module.exports = (() => {
         const chatId = msg.chat.id;
         const messageId = msg.message_id;
 
-        const delta = moment(moment()).diff(moment(lastTime));
+        const delta = moment().diff(moment(lastTime));
         const duration = moment.duration(delta);
         const humanized = duration.humanize();
 

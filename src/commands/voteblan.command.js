@@ -1,7 +1,12 @@
 const { bot } = require('./../config');
-const { User, Vote, VoteBan } = require('./../models');
 const { Transform, Logger } = require('./../util');
 const moment = require('moment');
+const {
+    User,
+    Vote,
+    VoteBan,
+    Counter
+} = require('./../models');
 
 const log = Logger(module);
 
@@ -13,7 +18,7 @@ module.exports = (() => {
 
     const getTimeDuration = (createdAt) => {
         const created = moment(createdAt);
-        const delta = moment(moment()).diff(moment(created));
+        const delta = moment().diff(moment(created));
         return moment.duration(delta);
     };
 
@@ -29,7 +34,7 @@ module.exports = (() => {
             where: {
                 username: username
             },
-            include: [VoteBan]
+            include: [VoteBan, Counter]
         });
         return user;
     };
@@ -39,7 +44,7 @@ module.exports = (() => {
             where: {
                 telegram_id: userId
             },
-            include: [VoteBan]
+            include: [VoteBan, Counter]
         });
         return user;
     };
@@ -137,6 +142,15 @@ module.exports = (() => {
         return voteBan.save();
     };
 
+    const kickUser = async (chatId, user) => {
+        await bot.kickChatMember(chatId, user.telegram_id);
+        await bot.sendMessage(chatId, `Мешок с мясом ${user.username} успешно аннигилирован!`);
+        await bot.unbanChatMember(chatId, user.telegram_id);
+        user.Counter.kicks += 1;
+
+        return user.Counter.save();
+    };
+
     bot.on('callback_query', async (callback) => {
         const data = Transform.transfromCallback(callback);
         const inline = data.inline_data;
@@ -157,10 +171,7 @@ module.exports = (() => {
         votes.forEach(v => v.vote === voteEnum.yes ? ban += 1 : unban += 1); //eslint-disable-line
 
         if (ban > 5) {
-            await bot.kickChatMember(chatId, banUser.telegram_id);
-            await bot.sendMessage(chatId, `Мешок с мясом ${banUser.username} успешно аннигилирован!`);
-            await bot.unbanChatMember(chatId, banUser.telegram_id);
-
+            await kickUser(chatId, banUser);
             await deleteVoteBan(banUser.Voteban.id);
         } else if (unban > 5) {
             await bot.sendMessage(chatId, `Мешок с мясом ${banUser.username} будет жить!`);
@@ -179,6 +190,14 @@ module.exports = (() => {
                 chatId,
                 messageId,
                 `Мешок с мясом по имени @${username} не найден`
+            );
+            return;
+        }
+        if (user.is_bot) {
+            await replyTo(
+                chatId,
+                messageId,
+                'Мешок с мясом не может блокировать ботов'
             );
             return;
         }

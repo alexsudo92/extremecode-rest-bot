@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         last_name: {
             type: DataTypes.STRING,
-            allowNull: true, // Last Name ставить не обязательно
+            allowNull: true,
             defaultValue: ''
         },
         username: {
@@ -37,9 +37,9 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     User.associate = (models) => {
-        User.hasOne(models.Stat);
         User.hasOne(models.Vote);
         User.hasOne(models.VoteBan);
+        User.hasOne(models.Counter);
     };
 
     return User;

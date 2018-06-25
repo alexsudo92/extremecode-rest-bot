@@ -1,6 +1,6 @@
 // TODO: Пофиксить импорты
 const { Logger } = require('./util');
-const { isAdmin } = require('./util/isAdmin');
+const { isAdmin, isChatMessage } = require('./util/telegram');
 const { bot } = require('./config');
 const { sequelize } = require('./models');
 const { Stats } = require('./handlers');
@@ -12,22 +12,24 @@ module.exports = (async () => {
     require('./commands').init();
 
     bot.on('message', async (msg) => {
-        if (msg.text) {
-            if (msg.from.id !== msg.chat.id) {
-                const admin = await isAdmin(msg);
-                msg.from.is_admin = admin;
-            }
+        if (isChatMessage(msg)) {
+            const admin = await isAdmin(msg);
+            msg.from.is_admin = admin;
 
-            if (msg.from.username === '' || !msg.from.username) {
+            if (!msg.from.username) {
                 await bot.sendMessage(msg.chat.id, 'Мешок с мясом должен иметь имя!', {
                     reply_to_message_id: msg.message_id
                 });
                 return;
             }
-            //TODO: Старая информация о пользователе не обновляется, обновлять каждые 30 минут
-            await Stats(msg.from);
+
+            await Stats(msg);
         }
     });
 
     log.debug('Application started');
 })();
+
+process.on('uncaughtException', (error) => {
+    log.error(error);
+});

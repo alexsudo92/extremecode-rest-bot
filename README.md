@@ -26,4 +26,7 @@ npm run pm2:start
 
 **The MIT License (MIT)**
 
-Copyright © 2018 Artem Dontsov
+Copyright © 2018 ExtremeCode GANG
+
+```Artem Dontsov (@artemdontsov)```
+```Ne Chelovek (@TochnoNeChelovek)```
