@@ -1,8 +1,10 @@
 const { bot } = require('./../config');
 const { Transform, Logger } = require('./../util');
+const { findUser, findUserById } = require('./../util/finders');
 const moment = require('moment');
+const { replyTo } = require('./../util/telegram');
+
 const {
-    User,
     Vote,
     VoteBan,
     Counter
@@ -22,33 +24,6 @@ module.exports = (() => {
         return moment.duration(delta);
     };
 
-    const replyTo = async (chatId, postId, message) => bot.sendMessage(
-        chatId,
-        message, {
-            reply_to_message_id: postId
-        }
-    );
-
-    const findUser = async (username) => {
-        const user = await User.findOne({
-            where: {
-                username: username
-            },
-            include: [VoteBan, Counter]
-        });
-        return user;
-    };
-
-    const findUserById = async (userId) => {
-        const user = await User.findOne({
-            where: {
-                telegram_id: userId
-            },
-            include: [VoteBan, Counter]
-        });
-        return user;
-    };
-
     const deleteVoteBan = async (votebanId) => {
         await Vote.destroy({
             where: {
@@ -61,8 +36,6 @@ module.exports = (() => {
                 id: votebanId
             }
         });
-
-        log.debug('Votes and Voteban destroyed');
     };
 
     const addVote = async (chatId, fromId, banUser, voteValue) => {
@@ -190,14 +163,6 @@ module.exports = (() => {
                 chatId,
                 messageId,
                 `Мешок с мясом по имени @${username} не найден`
-            );
-            return;
-        }
-        if (user.is_bot) {
-            await replyTo(
-                chatId,
-                messageId,
-                'Мешок с мясом не может блокировать ботов'
             );
             return;
         }

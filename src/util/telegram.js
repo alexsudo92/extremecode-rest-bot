@@ -11,3 +11,12 @@ exports.isAdmin = async (msg) => {
 exports.isChatMessage = (msg) => {
     return msg.from.id !== msg.chat.id;
 };
+
+exports.replyTo = async (chatId, postId, message) => {
+    return bot.sendMessage(
+        chatId,
+        message, {
+            reply_to_message_id: postId
+        }
+    );
+};

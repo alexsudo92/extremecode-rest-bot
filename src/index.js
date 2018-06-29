@@ -1,4 +1,3 @@
-// TODO: Пофиксить импорты
 const { Logger } = require('./util');
 const { isAdmin, isChatMessage } = require('./util/telegram');
 const { bot } = require('./config');

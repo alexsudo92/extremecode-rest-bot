@@ -4,6 +4,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING, // not int, cuz out of range
             allowNull: false
         },
+        group_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
         telegram_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
@@ -40,6 +44,7 @@ module.exports = (sequelize, DataTypes) => {
         User.hasOne(models.Vote);
         User.hasOne(models.VoteBan);
         User.hasOne(models.Counter);
+        User.hasOne(models.Group);
     };
 
     return User;
