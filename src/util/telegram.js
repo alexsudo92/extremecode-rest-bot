@@ -20,3 +20,7 @@ exports.replyTo = async (chatId, postId, message) => {
         }
     );
 };
+
+exports.allowFor = async (chatId, msg) => {
+    return chatId === msg.chat.id;
+};

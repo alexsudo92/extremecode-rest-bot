@@ -1,8 +1,12 @@
 const { bot } = require('./../config');
+const { Rest } = require('./../config').chats;
 const { Transform, Logger } = require('./../util');
 const { findUser, findUserById } = require('./../util/finders');
 const moment = require('moment');
-const { replyTo } = require('./../util/telegram');
+const {
+    replyTo,
+    allowFor
+} = require('./../util/telegram');
 
 const {
     Vote,
@@ -153,6 +157,10 @@ module.exports = (() => {
     });
 
     bot.onText(/\/voteblan (.+)/, async (msg, match) => {
+        if (!allowFor(Rest)) {
+            return;
+        }
+
         const chatId = msg.chat.id;
         const messageId = msg.message_id;
         const username = match[1].replace('@', '');

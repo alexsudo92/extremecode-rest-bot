@@ -1,17 +1,29 @@
 const moment = require('moment');
 const { bot } = require('./../config');
+const { Rest } = require('./../config').chats;
+const {
+    allowFor
+} = require('./../util/telegram');
 
 moment.locale('ru');
 
 module.exports = (() => {
     let lastTime = moment();
     bot.on('message', async (msg) => {
+        if (!allowFor(Rest)) {
+            return;
+        }
+
         if (msg.pinned_message) {
             lastTime = moment();
         }
     });
 
     bot.onText(/\/lastpin/, async (msg, match) => {
+        if (!allowFor(Rest)) {
+            return;
+        }
+
         const chatId = msg.chat.id;
         const messageId = msg.message_id;
 

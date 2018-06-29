@@ -1,11 +1,16 @@
 const { bot } = require('./../config');
 const { Group } = require('./../models');
 const { replyTo } = require('./../util/telegram');
+const { Rest } = require('./../config').chats;
 const {
     findGroup,
     findUser,
     findGroupById
 } = require('./../util/finders');
+
+const {
+    allowFor
+} = require('./../util/telegram');
 
 module.exports = (() => {
     const groupEnum = Object.freeze({
@@ -97,6 +102,10 @@ module.exports = (() => {
     });
 
     bot.onText(/\/groupremove/, async (msg, match) => {
+        if (!allowFor(Rest)) {
+            return;
+        }
+
         const chatId = msg.chat.id;
         const messageId = msg.message_id;
 
